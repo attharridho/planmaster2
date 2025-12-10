@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalender Produktivitas</title>
+    
+    <!-- Library Imports -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+    <!-- Tautan ke File CSS Eksternal -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-slate-900 dark:text-gray-100 transition-colors duration-300 h-screen flex flex-col">
+
+    <!-- Top Navigation Bar -->
+    <header class="h-16 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between px-4 shrink-0 z-20">
+        <div class="flex items-center gap-4">
+            <button id="menu-toggle" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full text-gray-600 dark:text-gray-300">
+                <i class="fas fa-bars text-lg"></i>
+            </button>
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <h1 class="text-xl font-semibold hidden sm:block">PlanMaster</h1>
+            </div>
+            <button onclick="changeMonth(-1)" class="ml-8 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button onclick="changeMonth(1)" class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <h2 id="current-month-display" class="text-lg font-medium ml-2 w-40">Desember 2025</h2>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="hidden md:flex items-center bg-gray-100 dark:bg-slate-700 rounded-lg px-3 py-2 w-64">
+                <i class="fas fa-search text-gray-400"></i>
+                <input type="text" id="global-search" placeholder="Cari tugas..." class="bg-transparent border-none outline-none text-sm ml-2 w-full dark:text-white">
+            </div>
+            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300">
+                <i class="fas fa-moon"></i>
+            </button>
+            <div class="w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center text-sm font-bold shadow-sm cursor-pointer" id="user-avatar" title="Pengguna Tamu">
+                G
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        <aside id="sidebar" class="w-64 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col transition-all duration-300 absolute md:relative z-40 h-full -translate-x-full md:translate-x-0">
+            <div class="p-4">
+                <button onclick="openTaskModal()" class="w-full bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 shadow-sm hover:shadow-md text-gray-700 dark:text-gray-200 py-3 rounded-full flex items-center gap-3 px-4 transition-all">
+                    <i class="fas fa-plus text-blue-500 text-xl"></i>
+                    <span class="font-medium">Buat Baru</span>
+                </button>
+            </div>
+
+            <div class="px-4 py-2 flex-1 overflow-y-auto">
+                <div class="mb-6">
+                    <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-3">Tindakan Cepat</h3>
+                    <div onclick="togglePomodoro()" class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer text-gray-700 dark:text-gray-300">
+                        <i class="fas fa-stopwatch text-red-500"></i>
+                        <span>Mode Fokus</span>
+                    </div>
+                    <div onclick="showStats()" class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer text-gray-700 dark:text-gray-300">
+                        <i class="fas fa-chart-pie text-green-500"></i>
+                        <span>Statistik</span>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-3">Kategori</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                            <input type="checkbox" checked onchange="filterCategory('all')" class="rounded text-blue-500">
+                            <span>Semua</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                            <input type="checkbox" checked onchange="filterCategory('kerja')" class="rounded text-blue-500">
+                            <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                            <span>Kerja</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                            <input type="checkbox" checked onchange="filterCategory('pribadi')" class="rounded text-green-500">
+                            <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                            <span>Pribadi</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                            <input type="checkbox" checked onchange="filterCategory('kuliah')" class="rounded text-purple-500">
+                            <span class="w-3 h-3 rounded-full bg-purple-500"></span>
+                            <span>Kuliah</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-gray-200 dark:border-slate-700 text-xs text-gray-500 text-center">
+                Status: <span id="sync-status" class="text-green-500 font-bold">Online</span>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col bg-white dark:bg-slate-900 relative z-0">
+            <div class="grid grid-cols-7 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
+                <div class="py-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400">MIN</div>
+                <div class="py-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400">SEN</div>
+                <div class="py-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400">SEL</div>
+                <div class="py-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400">RAB</div>
+                <div class="py-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400">KAM</div>
+                <div class="py-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400">JUM</div>
+                <div class="py-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400">SAB</div>
+            </div>
+            <div id="calendar-grid" class="calendar-grid flex-1 overflow-y-auto"></div>
+        </main>
+
+        <aside class="w-72 bg-white dark:bg-slate-800 border-l border-gray-200 dark:border-slate-700 flex flex-col shrink-0 hidden lg:flex">
+            <div class="p-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
+                <h3 class="font-semibold text-gray-700 dark:text-gray-200">Tugas Saya</h3>
+                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full" id="task-count">0</span>
+            </div>
+            <div class="p-3 bg-gray-50 dark:bg-slate-900">
+                <input type="text" placeholder="Tambah tugas cepat..." id="quick-add-input" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:border-blue-500 dark:text-white" onkeypress="handleQuickAdd(event)">
+                <p class="text-[10px] text-gray-400 mt-1 ml-1">Tekan Enter untuk menyimpan</p>
+            </div>
+            <div class="flex-1 overflow-y-auto p-3 space-y-3" id="task-list-container">
+                <div class="text-center text-gray-400 text-sm mt-10">Memuat tugas...</div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- MODAL -->
+    <div id="task-modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+        <div class="modal-content bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="p-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-900">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white" id="modal-title">Tugas Baru</h3>
+                <button type="button" onclick="closeTaskModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto custom-scrollbar">
+                <form id="task-form" class="space-y-4" onsubmit="event.preventDefault()">
+                    <input type="hidden" id="task-id">
+                    <div>
+                        <input type="text" id="task-title" placeholder="Judul Tugas/Agenda" class="w-full text-xl font-semibold border-b-2 border-transparent hover:border-gray-200 focus:border-blue-500 focus:outline-none py-2 bg-transparent dark:text-white" required>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Kategori</label>
+                            <div class="flex gap-2">
+                                <label class="cursor-pointer"><input type="radio" name="category" value="kerja" class="peer sr-only" checked><span class="block px-3 py-1 rounded-full text-xs border border-blue-500 text-blue-500 peer-checked:bg-blue-500 peer-checked:text-white">Kerja</span></label>
+                                <label class="cursor-pointer"><input type="radio" name="category" value="pribadi" class="peer sr-only"><span class="block px-3 py-1 rounded-full text-xs border border-green-500 text-green-500 peer-checked:bg-green-500 peer-checked:text-white">Pribadi</span></label>
+                                <label class="cursor-pointer"><input type="radio" name="category" value="kuliah" class="peer sr-only"><span class="block px-3 py-1 rounded-full text-xs border border-purple-500 text-purple-500 peer-checked:bg-purple-500 peer-checked:text-white">Kuliah</span></label>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Prioritas</label>
+                            <select id="task-priority" class="w-full bg-gray-100 dark:bg-slate-700 rounded px-2 py-1 text-sm dark:text-white border-none outline-none">
+                                <option value="low">Rendah</option>
+                                <option value="medium" selected>Sedang</option>
+                                <option value="high">Tinggi</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1"><i class="far fa-calendar mr-1"></i> Tanggal</label>
+                            <input type="date" id="task-date" class="w-full bg-gray-100 dark:bg-slate-700 rounded px-3 py-2 text-sm dark:text-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1"><i class="far fa-clock mr-1"></i> Waktu</label>
+                            <input type="time" id="task-time" class="w-full bg-gray-100 dark:bg-slate-700 rounded px-3 py-2 text-sm dark:text-white outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1"><i class="fas fa-align-left mr-1"></i> Deskripsi</label>
+                        <textarea id="task-desc" rows="3" class="w-full bg-gray-100 dark:bg-slate-700 rounded px-3 py-2 text-sm dark:text-white outline-none resize-none" placeholder="Tambahkan detail..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1"><i class="fas fa-tasks mr-1"></i> Checklist</label>
+                        <div id="checklist-container" class="space-y-2 mb-2"></div>
+                        <button type="button" onclick="addChecklistItem()" class="text-sm text-blue-500 hover:text-blue-600 font-medium">+ Tambah langkah</button>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2"><i class="fas fa-paperclip mr-1"></i> Lampiran</label>
+                        <div id="drop-zone" class="drop-zone rounded-lg p-4 text-center cursor-pointer bg-gray-50 dark:bg-slate-700 border-dashed">
+                            <i class="fas fa-cloud-upload-alt text-2xl text-gray-400 mb-2"></i>
+                            <p class="text-xs text-gray-500">Drag & drop file atau klik untuk upload</p>
+                            <input type="file" id="file-input" class="hidden" multiple onchange="handleFileSelect(this.files)">
+                        </div>
+                        <div id="file-list" class="mt-2 space-y-2"></div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- BUTTONS: Tombol Hapus Ditambahkan Disini -->
+            <div class="p-4 border-t border-gray-200 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-900">
+                <!-- Tombol Hapus (Kiri, Default Hidden) -->
+                <button type="button" id="btn-delete-task" class="hidden text-red-500 hover:text-red-700 text-sm font-medium px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors">
+                    <i class="fas fa-trash-alt mr-2"></i>Hapus
+                </button>
+                
+                <!-- Tombol Aksi (Kanan) -->
+                <div class="flex gap-2 ml-auto">
+                    <button type="button" onclick="closeTaskModal()" class="px-4 py-2 text-gray-600 dark:text-gray-300 text-sm font-medium hover:bg-gray-200 dark:hover:bg-slate-700 rounded">Batal</button>
+                    <button type="button" onclick="saveTask()" class="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 shadow-md">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- POMODORO MODAL -->
+    <div id="pomodoro-modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm">
+        <div class="modal-content bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl p-8 text-center">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Mode Fokus</h2>
+            <div class="timer-circle text-gray-700 dark:text-gray-200 mb-8" id="timer-display">25:00</div>
+            <div class="flex justify-center gap-4 mb-6">
+                <button id="btn-start-timer" onclick="startTimer()" class="w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center hover:bg-green-600 transition-colors shadow-lg"><i class="fas fa-play"></i></button>
+                <button onclick="pauseTimer()" class="w-12 h-12 rounded-full bg-yellow-500 text-white flex items-center justify-center hover:bg-yellow-600 transition-colors shadow-lg"><i class="fas fa-pause"></i></button>
+                <button onclick="resetTimer()" class="w-12 h-12 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg"><i class="fas fa-redo"></i></button>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Kerjakan satu tugas sampai timer berbunyi.</p>
+            <button onclick="togglePomodoro()" class="mt-6 text-sm text-gray-400 hover:text-gray-600 underline">Tutup</button>
+        </div>
+    </div>
+
+    <!-- STATS MODAL -->
+    <div id="stats-modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+        <div class="modal-content bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-2xl p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">Produktivitas Minggu Ini</h3>
+                <button onclick="document.getElementById('stats-modal').classList.remove('active')" class="text-gray-500"><i class="fas fa-times"></i></button>
+            </div>
+            <canvas id="productivityChart" width="400" height="250"></canvas>
+            <div class="mt-4 grid grid-cols-2 gap-4 text-center">
+                <div class="bg-blue-50 dark:bg-slate-700 p-3 rounded-lg"><p class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="stat-completed">0</p><p class="text-xs text-gray-500 dark:text-gray-400">Tugas Selesai</p></div>
+                <div class="bg-green-50 dark:bg-slate-700 p-3 rounded-lg"><p class="text-2xl font-bold text-green-600 dark:text-green-400" id="stat-rate">0%</p><p class="text-xs text-gray-500 dark:text-gray-400">Tingkat Penyelesaian</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ONBOARDING -->
+    <div id="onboarding-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-80">
+        <div class="bg-white dark:bg-slate-800 p-8 rounded-xl max-w-md text-center">
+            <div class="text-5xl text-blue-500 mb-4"><i class="fas fa-calendar-check"></i></div>
+            <h2 class="text-2xl font-bold mb-2 dark:text-white">Selamat Datang di PlanMaster!</h2>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">Kelola jadwal Anda dengan mudah. Seret tugas ke kalender, lampirkan file, dan fokus dengan Pomodoro.</p>
+            <button onclick="document.getElementById('onboarding-modal').classList.add('hidden')" class="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 w-full">Mulai Sekarang</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
